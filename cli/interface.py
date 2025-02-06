@@ -1,388 +1,453 @@
-from typing import Any
+import tkinter as tk
+import os
+import webbrowser
+import pandas as pd
+import matplotlib.pyplot as plt
+from datetime import datetime
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from tkinter import ttk, messagebox, filedialog
 from core.data_loader import DataLoader
 from core.data_processor import DataProcessor
-import os
-from datetime import datetime
-import pandas as pd
 
-"""
-@Description Interface en ligne de commande pour ESMEMarket
-"""
-class ConsoleCLI:
+class ModernFrame(ttk.Frame):
+    """
+    @Description: Frame personnalisé avec style moderne
+    """
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        style = ttk.Style()
+        style.configure('Modern.TFrame', background='#f0f0f0')
+        self['style'] = 'Modern.TFrame'
+
+class InterfaceCLI:
+    """
+    @Description: Interface graphique moderne pour l'application ESMEMarket
+    """
     def __init__(self):
-        """
-        @Description Initialise l'interface CLI
-        """
+        icon_path = "assets/icon.ico"
+        self.window = tk.Tk()
+        self.window.title("ESMEMarket - Tableau de Bord")
+        self.window.iconbitmap(icon_path)
+        self.window.geometry("1920x1080")
+        self.window.configure(bg='#f0f0f0')
+
+        # Initialisation des classes de données
         self.data_loader = DataLoader()
         self.data_processor = None
-        self.current_file = None
+        self.current_df = None
 
-    def display_menu(self) -> None:
-        """
-        @Description Affiche le menu principal
-        """
-        print("\n=== ESMEMarket - Dashboard1 ===")
-        print("[1] Charger un fichier de données")
-        print("[2] Afficher les ventes pour une date")
-        print("[3] Afficher les ventes pour un produit")
-        print("[4] Rechercher par seuils (quantité/prix)")
-        print("[5] Trouver le produit le plus vendu")
-        print("[6] Calculer le chiffre d'affaires")
-        print("[7] Modifier une entrée")
-        print("[8] Ajouter une nouvelle vente")
-        print("[9] Analyser les tendances de ventes")
-        print("[0] Sauvegarder les modifications")
-        print("[E] Quitter")
-    
-    def export_analysis_to_file(self, analysis_type: str, data: Any) -> str:
-        """
-        @Description Exporte les résultats d'analyse dans un fichier texte
+        # Variables pour les filtres
+        self.date_var = tk.StringVar()
+        self.product_var = tk.StringVar()
 
-        @Params {analysis_type} : str => Type d'analyse effectuée
-        @Params {data} : Any => Données à exporter
-        @Return: str => Chemin du fichier créé
-        """
-        timestamp = datetime.now()
-        filename = f"analysis_results_{analysis_type}_{timestamp.strftime('%Y%m%d_%H%M%S')}.txt"
-        
-        with open(filename, 'w', encoding='utf-8') as f:
-            # En-tête avec métadonnées
-            f.write("=== Rapport d'analyse ESMEMarket ===\n")
-            f.write(f"Date d'analyse: {timestamp.strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Type d'analyse: {analysis_type}\n")
-            if self.current_file:
-                f.write(f"Fichier source: {self.current_file}\n")
-            f.write("\n" + "="*50 + "\n\n")
-            
-            # Contenu de l'analyse
-            if isinstance(data, pd.DataFrame):
-                f.write(data.to_string())
-            elif isinstance(data, dict):
-                for key, value in data.items():
-                    f.write(f"\n=== {key} ===\n")
-                    if isinstance(value, pd.DataFrame):
-                        f.write(value.to_string())
-                    else:
-                        f.write(str(value))
-            else:
-                f.write(str(data))
-                
-        return filename
+        # Configuration du style
+        self._configure_styles()
 
-    def analyze_sales_trends(self) -> None:
+        # Création de l'interface
+        self._create_menu()
+        self._create_main_layout()
+
+    def _configure_styles(self):
         """
-        @Description Analyse et affiche les tendances de ventes
+        @Description: Configure les styles personnalisés pour l'interface
         """
-        if not self._check_data_loaded():
-            return
-            
-        print("\n=== Analyse des tendances de ventes ===")
-        trends = self.data_processor.get_sales_trends()
-        
-        # Préparation du texte de l'analyse
-        analysis_text = "ANALYSE DES TENDANCES DE VENTES\n\n"
-        
-        # Tendances mensuelles
-        analysis_text += "=== Tendances mensuelles ===\n"
-        analysis_text += trends['monthly'].to_string()
-        analysis_text += "\n\n"
-        
-        # Tendances horaires
-        analysis_text += "=== Tendances par heure ===\n"
-        peak_hour = trends['hourly']['number_of_orders'].idxmax()
-        analysis_text += f"Heure de pointe: {peak_hour}h avec {int(trends['hourly'].loc[peak_hour, 'number_of_orders'])} commandes\n"
-        analysis_text += trends['hourly'].to_string()
-        analysis_text += "\n\n"
-        
-        # Tendances par produit
-        analysis_text += "=== Top produits par mois ===\n"
-        monthly_best = trends['product_monthly'].groupby(['Year', 'Month'])['total_quantity'].idxmax()
-        for (year, month), (_, _, product) in monthly_best.items():
-            quantity = trends['product_monthly'].loc[(year, month, product), 'total_quantity']
-            revenue = trends['product_monthly'].loc[(year, month, product), 'total_revenue']
-            analysis_text += f"{year}-{month:02d}: {product} ({int(quantity)} unités, {revenue:.2f}€)\n"
-        
-        # Exporter l'analyse dans un fichier
-        output_file = self.export_analysis_to_file("sales_trends", analysis_text)
-        
-        print(f"\nAnalyse exportée dans le fichier : {output_file}")
-        
-        # Ouvrir le fichier avec le bloc-notes
+        style = ttk.Style()
+        style.configure('Header.TLabel', font=('Helvetica', 12, 'bold'))
+        style.configure('Stats.TLabel', font=('Helvetica', 10))
+        style.configure('Title.TLabel', font=('Helvetica', 14, 'bold'))
+
+    def _create_menu(self):
+        """
+        @Description: Crée le menu principal
+        """
+        menubar = tk.Menu(self.window)
+
+        file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu.add_command(label="Charger CSV", command=self._load_csv)
+        file_menu.add_command(label="Exporter Analyse", command=self._export_analysis)
+        file_menu.add_separator()
+        file_menu.add_command(label="Quitter", command=self.window.quit)
+        menubar.add_cascade(label="Fichier", menu=file_menu)
+
+        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(label="Documentation", command=self._show_documentation)
+        help_menu.add_command(label="À propos", command=self._show_about)
+        help_menu.add_separator()
+        help_menu.add_command(label="Crédit", command=self._show_credit)
+        menubar.add_cascade(label="Aide", menu=help_menu)
+
+        self.window.config(menu=menubar)
+
+    def _create_main_layout(self):
+        """
+        @Description: Crée la mise en page principale avec un design moderne
+        """
+        self.main_container = ModernFrame(self.window, padding="10")
+        self.main_container.grid(row=0, column=0, sticky="nsew")
+
+        self._create_header()
+
+        self._create_filters()
+
+        self._create_data_section()
+        self._create_analysis_section()
+
+        self.window.grid_rowconfigure(0, weight=1)
+        self.window.grid_columnconfigure(0, weight=1)
+
+    def _create_header(self):
+        """
+        @Description: Crée l'en-tête de l'application
+        """
+        header = ModernFrame(self.main_container, padding="5")
+        header.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+
+        title = ttk.Label(header, text="ESMEMarket - Tableau de bord", style='Title.TLabel')
+        title.grid(row=0, column=0, padx=5, pady=5)
+
+        self.file_info = ttk.Label(header, text="Aucun fichier chargé", style='Stats.TLabel')
+        self.file_info.grid(row=1, column=0, padx=5)
+
+        btn_frame = ttk.Frame(header)
+        btn_frame.grid(row=0, column=1, rowspan=2, sticky="e")
+
+        ttk.Button(btn_frame, text="Charger CSV", command=self._load_csv).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Exporter Analyse", command=self._export_analysis).pack(side=tk.LEFT, padx=5)
+
+    def _create_filters(self):
+        """
+        @Description: Crée la section des filtres
+        """
+        filter_frame = ModernFrame(self.main_container, padding="5")
+        filter_frame.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+
+        # Titre des filtres
+        ttk.Label(filter_frame, text="Filtres", style='Header.TLabel').grid(row=0, column=0, sticky="w", pady=(0, 5))
+
+        # Filtre par date
+        ttk.Label(filter_frame, text="Date:").grid(row=1, column=0, padx=5)
+        self.date_entry = ttk.Entry(filter_frame, textvariable=self.date_var)
+        self.date_entry.grid(row=1, column=1, padx=5)
+        ttk.Label(filter_frame, text="(YYYY-MM-DD)").grid(row=1, column=2, padx=5)
+
+        # Filtre par produit
+        ttk.Label(filter_frame, text="Produit:").grid(row=1, column=3, padx=5)
+        self.product_combo = ttk.Combobox(filter_frame, textvariable=self.product_var)
+        self.product_combo.grid(row=1, column=4, padx=5)
+
+        # Bouton d'application des filtres
+        ttk.Button(filter_frame, text="Appliquer Filtres", command=self._apply_filters).grid(row=1, column=5, padx=5)
+        ttk.Button(filter_frame, text="Réinitialiser", command=self._reset_filters).grid(row=1, column=6, padx=5)
+
+    def _create_data_section(self):
+        """
+        @Description: Crée la section de visualisation des données
+        """
+        data_frame = ModernFrame(self.main_container, padding="5")
+        data_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 5))
+
+        # Titre de la section
+        ttk.Label(data_frame, text="Données", style='Header.TLabel').grid(row=0, column=0, sticky="w", pady=(0, 5))
+
+        # Tableau de données
+        self.tree = ttk.Treeview(data_frame, selectmode='browse', height=20)
+        self.tree.grid(row=1, column=0, sticky="nsew")
+
+        # Scrollbars
+        vsb = ttk.Scrollbar(data_frame, orient="vertical", command=self.tree.yview)
+        vsb.grid(row=1, column=1, sticky="ns")
+        hsb = ttk.Scrollbar(data_frame, orient="horizontal", command=self.tree.xview)
+        hsb.grid(row=2, column=0, sticky="ew")
+
+        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+    def _create_analysis_section(self):
+        """
+        @Description: Crée la section d'analyse avec graphiques
+        """
+        analysis_frame = ModernFrame(self.main_container, padding="5")
+        analysis_frame.grid(row=1, column=1, sticky="nsew", padx=(5, 0))
+
+        # Configure grid weights for analysis_frame
+        analysis_frame.grid_rowconfigure(1, weight=1)
+        analysis_frame.grid_columnconfigure(0, weight=1)
+
+        # Titre de la section
+        ttk.Label(analysis_frame, text="Analyse", style='Header.TLabel').grid(row=0, column=0, sticky="w", pady=(0, 5))
+
+        # Notebook pour les différentes vues d'analyse
+        self.notebook = ttk.Notebook(analysis_frame)
+        self.notebook.grid(row=1, column=0, sticky="nsew")
+
+        # Onglets d'analyse
+        self.summary_tab = ModernFrame(self.notebook, padding="5")
+        self.trends_tab = ModernFrame(self.notebook, padding="5")
+        self.products_tab = ModernFrame(self.notebook, padding="5")
+
+        self.notebook.add(self.summary_tab, text="Résumé")
+        self.notebook.add(self.trends_tab, text="Tendances")
+        self.notebook.add(self.products_tab, text="Produits")
+
+        # Initialisation des figures et canvas
+        self.summary_fig = Figure(figsize=(6, 4), dpi=100)
+        self.trends_fig = Figure(figsize=(6, 4), dpi=100)
+        self.products_fig = Figure(figsize=(6, 4), dpi=100)
+
+        self.summary_canvas = FigureCanvasTkAgg(self.summary_fig, master=self.summary_tab)
+        self.trends_canvas = FigureCanvasTkAgg(self.trends_fig, master=self.trends_tab)
+        self.products_canvas = FigureCanvasTkAgg(self.products_fig, master=self.products_tab)
+
+        self.summary_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self.trends_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self.products_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+    def _load_csv(self):
+        """
+        @Description: Charge un fichier CSV et met à jour l'interface
+        """
         try:
-            if os.name == 'nt':  # Windows
-                os.system(f'notepad.exe {output_file}')
-            elif os.name == 'posix':  # macOS et Linux
-                os.system(f'open {output_file}' if sys.platform == 'darwin' else f'xdg-open {output_file}')
-        except Exception as e:
-            print(f"\nErreur lors de l'ouverture du fichier: {str(e)}")
-            print("Vous pouvez ouvrir le fichier manuellement.")
-
-    def load_data(self) -> None:
-        """
-        @Description Charge un fichier CSV depuis le dossier data
-        """
-        print("\n=== Fichiers disponibles dans le dossier data ===")
-        data_files = [f for f in os.listdir("data") if f.endswith('.csv')]
-        
-        for i, file in enumerate(data_files, 1):
-            print(f"{i}. {file}")
-            
-        choice = input("\nChoisissez un fichier (numéro) : ")
-        try:
-            file_index = int(choice) - 1
-            if 0 <= file_index < len(data_files):
-                file_path = os.path.join("data", data_files[file_index])
-                self.data_loader.load_csv(file_path)
-                self.data_processor = DataProcessor(self.data_loader.data)
-                self.current_file = file_path
-                print(f"\nFichier {data_files[file_index]} chargé avec succès!")
-            else:
-                print("\nNuméro de fichier invalide!")
-        except ValueError:
-            print("\nEntrée invalide! Veuillez entrer un numéro.")
-
-    def display_sales_by_date(self) -> None:
-        """
-        @Description Affiche les ventes pour une date donnée
-        """
-        if not self._check_data_loaded():
-            return
-            
-        date_str = input("\nEntrez la date (YYYY-MM-DD) : ")
-        try:
-            filtered_data = self.data_loader.filter_by_date(date_str)
-            if filtered_data.empty:
-                print("\nAucune vente trouvée pour cette date.")
-            else:
-                print("\n=== Ventes pour la date", date_str, "===")
-                print(filtered_data.to_string())
-        except Exception as e:
-            print(f"\nErreur: {str(e)}")
-
-    def display_sales_by_product(self) -> None:
-        """
-        @Description Affiche les ventes pour un produit spécifique
-        """
-        if not self._check_data_loaded():
-            return
-            
-        products = self.data_loader.get_unique_products()
-        print("\n=== Produits disponibles ===")
-        for i, product in enumerate(products, 1):
-            print(f"{i}. {product}")
-            
-        choice = input("\nChoisissez un produit (numéro) : ")
-        try:
-            product_index = int(choice) - 1
-            if 0 <= product_index < len(products):
-                product = products[product_index]
-                filtered_data = self.data_loader.data[self.data_loader.data["Product"] == product]
-                print(f"\n=== Ventes pour {product} ===")
-                print(filtered_data.to_string())
-            else:
-                print("\nNuméro de produit invalide!")
-        except ValueError:
-            print("\nEntrée invalide! Veuillez entrer un numéro.")
-
-    def search_by_threshold(self) -> None:
-        """
-        @Description Recherche les ventes selon des seuils
-        """
-        if not self._check_data_loaded():
-            return
-            
-        try:
-            min_qty = input("\nQuantité minimum (Enter pour ignorer) : ")
-            max_qty = input("Quantité maximum (Enter pour ignorer) : ")
-            min_price = input("Prix minimum (Enter pour ignorer) : ")
-            max_price = input("Prix maximum (Enter pour ignorer) : ")
-            
-            filtered_data = self.data_processor.get_sales_by_threshold(
-                min_quantity=int(min_qty) if min_qty else None,
-                max_quantity=int(max_qty) if max_qty else None,
-                min_price=float(min_price) if min_price else None,
-                max_price=float(max_price) if max_price else None
+            filename = filedialog.askopenfilename(
+                title="Sélectionner un fichier CSV",
+                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
             )
-            
-            if filtered_data.empty:
-                print("\nAucune vente ne correspond aux critères.")
-            else:
-                print("\n=== Résultats de la recherche ===")
-                print(filtered_data.to_string())
-        except ValueError:
-            print("\nErreur: Veuillez entrer des nombres valides.")
 
-    def find_best_selling_product(self) -> None:
-        """
-        @Description Affiche le produit le plus vendu et les statistiques de ventes
-        """
-        if not self._check_data_loaded():
-            return
-            
-        print("\n=== Résumé des ventes par produit ===")
-        sales_summary = self.data_processor.get_sales_summary()
-        print("\nTop 5 des produits les plus vendus :")
-        for product in sales_summary.head().index:
-            stats = sales_summary.loc[product]
-            print(f"\n{product}:")
-            print(f"  - Quantité totale vendue: {int(stats['total_quantity'])}")
-            print(f"  - Nombre de commandes: {int(stats['number_of_orders'])}")
-            print(f"  - Prix moyen: {stats['average_price']:.2f} €")
-            print(f"  - Chiffre d'affaires total: {stats['total_revenue']:.2f} €")
-        
-        print("\n=== Détails du produit le plus vendu ===")
-        best_product = self.data_processor.get_best_selling_product()
-        print(f"Produit: {best_product['product']}")
-        print(f"Quantité totale vendue: {best_product['total_quantity']}")
-        print(f"Nombre de commandes: {best_product['number_of_orders']}")
-        print(f"Prix moyen: {best_product['average_price']:.2f} €")
-        print(f"Chiffre d'affaires total: {best_product['total_revenue']:.2f} €")
+            if filename:
+                # Chargement des données
+                df = self.data_loader.load_csv(filename)
+                self.data_processor = DataProcessor(df)
 
-    def calculate_revenue(self) -> None:
-        """
-        @Description Calcule et affiche le chiffre d'affaires
-        """
-        if not self._check_data_loaded():
-            return
-            
-        start_date = input("\nDate de début (YYYY-MM-DD) ou Enter pour tout : ")
-        end_date = input("Date de fin (YYYY-MM-DD) ou Enter pour tout : ")
-        
-        revenue = self.data_processor.calculate_total_revenue(
-            start_date=start_date if start_date else None,
-            end_date=end_date if end_date else None
-        )
-        
-        print(f"\nChiffre d'affaires: {revenue:.2f} €")
+                # Mise à jour de l'interface
+                self._update_file_info(filename)
+                self._update_data_table(df)
+                self._update_analysis()
 
-    def modify_entry(self) -> None:
-        """
-        @Description Modifie une entrée existante
-        """
-        if not self._check_data_loaded():
-            return
-            
-        order_id = input("\nEntrez l'Order ID à modifier : ")
-        entry = self.data_loader.data[self.data_loader.data["Order ID"] == order_id]
-        
-        if entry.empty:
-            print("\nOrder ID non trouvé!")
-            return
-            
-        print("\nEntrée actuelle :")
-        print(entry.to_string())
-        
-        try:
-            new_quantity = input("\nNouvelle quantité (Enter pour ne pas modifier) : ")
-            new_price = input("Nouveau prix (Enter pour ne pas modifier) : ")
-            
-            if new_quantity:
-                self.data_loader.data.loc[self.data_loader.data["Order ID"] == order_id, "Quantity Ordered"] = int(new_quantity)
-            if new_price:
-                self.data_loader.data.loc[self.data_loader.data["Order ID"] == order_id, "Price Each"] = float(new_price)
-                
-            print("\nEntrée modifiée avec succès!")
-        except ValueError:
-            print("\nErreur: Valeurs invalides!")
+                messagebox.showinfo("Succès", f"Fichier chargé avec succès\n{len(df)} lignes valides")
 
-    def add_new_sale(self) -> None:
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Erreur lors du chargement: {str(e)}")
+
+    def _update_file_info(self, filename):
         """
-        @Description Ajoute une nouvelle vente
+        @Description: Met à jour les informations sur le fichier chargé
         """
-        if not self._check_data_loaded():
+        file_info = f"Fichier: {os.path.basename(filename)}"
+        self.file_info.config(text=file_info)
+
+    def _update_data_table(self, df):
+        """
+        @Description: Met à jour le tableau de données
+        """
+        # Réinitialiser le tableau
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+
+        # Configurer les colonnes
+        self.tree['columns'] = list(df.columns)
+        self.tree['show'] = 'headings'
+
+        for column in df.columns:
+            self.tree.heading(column, text=column)
+            self.tree.column(column, width=100)
+
+        # Ajouter les données
+        for idx, row in df.head(1000).iterrows():  # Limiter à 1000 lignes pour la performance
+            self.tree.insert("", "end", values=list(row))
+
+    def _update_analysis(self):
+        """
+        @Description: Met à jour les analyses et graphiques
+        """
+        if self.data_processor:
+            # Récupérer les données d'analyse
+            sales_summary = self.data_processor.get_sales_summary()
+            best_seller = self.data_processor.get_best_selling_product()
+            trends = self.data_processor.get_sales_trends()
+
+            # Mettre à jour les graphiques
+            self._update_summary_graph(sales_summary)
+            self._update_trends_graph(trends)
+            self._update_products_analysis(sales_summary)
+
+    def _update_analysis(self):
+        """
+        @Description: Met à jour les analyses et graphiques
+        """
+        if self.data_processor:
+            # Récupérer les données d'analyse
+            sales_summary = self.data_processor.get_sales_summary()
+            trends = self.data_processor.get_sales_trends()
+
+            # Mettre à jour les graphiques
+            self._update_summary_graph(sales_summary)
+            self._update_trends_graph()
+            self._update_products_graph(sales_summary)
+
+    def _update_summary_graph(self, sales_summary):
+        """
+        @Description: Met à jour le graphique de résumé
+        """
+        self.summary_fig.clear()
+        ax = self.summary_fig.add_subplot(111)
+
+        # Créer un graphique à barres des meilleures ventes
+        sales_summary.head(10)['total_quantity'].plot(kind='bar', ax=ax)
+        ax.set_title('Top 10 des Produits les Plus Vendus')
+        ax.set_xlabel('Produit')
+        ax.set_ylabel('Quantité Vendue')
+        plt.xticks(rotation=45)
+
+        self.summary_fig.tight_layout()
+        self.summary_canvas.draw()
+
+    def _update_filters(self):
+        """
+        @Description: Met à jour les options des filtres
+        """
+        if self.current_df is not None:
+            # Mise à jour des produits disponibles
+            products = self.current_df['Product'].unique().tolist()
+            self.product_combo['values'] = [''] + products
+
+            # Réinitialisation des valeurs
+            self.date_var.set('')
+            self.product_var.set('')
+
+    def _apply_filters(self):
+        """
+        @Description: Applique les filtres sélectionnés
+        """
+        if self.current_df is None:
             return
-            
-        try:
-            print("\n=== Ajout d'une nouvelle vente ===")
-            order_id = f"Order_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            
-            # Affichage des produits existants
-            products = self.data_loader.get_unique_products()
-            print("\nProduits disponibles:")
-            for i, product in enumerate(products, 1):
-                print(f"{i}. {product}")
-            
-            product_choice = int(input("\nChoisissez un produit (numéro) : ")) - 1
-            if not (0 <= product_choice < len(products)):
-                print("\nNuméro de produit invalide!")
+
+        filtered_df = self.current_df.copy()
+
+        # Filtre par date
+        date_filter = self.date_var.get()
+        if date_filter:
+            try:
+                date = pd.to_datetime(date_filter).date()
+                filtered_df = filtered_df[filtered_df['Order Date'].dt.date == date]
+            except ValueError:
+                messagebox.showerror("Erreur", "Format de date invalide")
                 return
-                
-            product = products[product_choice]
-            quantity = int(input("Quantité : "))
-            price = float(input("Prix unitaire : "))
-            address = input("Adresse d'achat : ")
-            
-            new_sale = pd.DataFrame({
-                "Order ID": [order_id],
-                "Product": [product],
-                "Quantity Ordered": [quantity],
-                "Price Each": [price],
-                "Order Date": [datetime.now()],
-                "Purchase Address": [address]
-            })
-            
-            self.data_loader.data = pd.concat([self.data_loader.data, new_sale], ignore_index=True)
-            print("\nNouvelle vente ajoutée avec succès!")
-            
-        except ValueError:
-            print("\nErreur: Valeurs invalides!")
 
-    def save_modifications(self) -> None:
+        # Filtre par produit
+        product_filter = self.product_var.get()
+        if product_filter:
+            filtered_df = filtered_df[filtered_df['Product'] == product_filter]
+
+        # Mise à jour de l'affichage
+        self._update_data_table(filtered_df)
+        self.data_processor = DataProcessor(filtered_df)
+        self._update_analysis()
+
+    def _reset_filters(self):
         """
-        @Description Sauvegarde les modifications dans un nouveau fichier
+        @Description: Réinitialise tous les filtres
         """
-        if not self._check_data_loaded():
+        self.date_var.set('')
+        self.product_var.set('')
+        if self.current_df is not None:
+            self._update_data_table(self.current_df)
+            self.data_processor = DataProcessor(self.current_df)
+            self._update_analysis()
+
+    def _update_trends_graph(self, event=None):
+        """
+        @Description: Met à jour le graphique des tendances
+        """
+        self.trends_fig.clear()
+        ax = self.trends_fig.add_subplot(111)
+        trends = self.data_processor.get_sales_trends()
+        monthly_trends = trends['monthly']
+
+        monthly_trends = monthly_trends.sort_values(by=['Year', 'Month'])
+        monthly_trends['Date'] = pd.to_datetime(
+            monthly_trends[['Year', 'Month']].assign(DAY=1)
+        )
+
+        ax.plot(monthly_trends['Date'], monthly_trends['total_revenue'], marker='o', linestyle='-')
+        ax.set_title('Tendances Mensuelles des Ventes')
+        ax.set_xlabel('Mois')
+        ax.set_ylabel('Revenu Total')
+
+        self.trends_fig.tight_layout()
+        self.trends_canvas.draw()
+
+    def _update_products_graph(self, sales_summary):
+        """
+        @Description: Met à jour le graphique des produits
+        """
+        self.products_fig.clear()
+        ax = self.products_fig.add_subplot(111)
+
+        # Créer un camembert des parts de marché basé sur le revenu total
+        sales_summary['market_share'] = sales_summary['total_revenue'] / sales_summary['total_revenue'].sum() * 100
+        top_5_products = sales_summary.head(5)
+
+        wedges, texts, autotexts = ax.pie(top_5_products['market_share'], labels=top_5_products.index, autopct='%1.1f%%', startangle=90)
+
+        ax.set_title('Part de Marché des 5 Meilleurs Produits')
+
+        self.products_fig.tight_layout()
+        self.products_canvas.draw()
+
+    def _export_analysis(self):
+        """
+        @Description: Exporte l'analyse actuelle dans un fichier texte
+        """
+        if not self.data_processor:
+            messagebox.showwarning("Attention", "Aucune donnée n'est chargée")
             return
-            
+
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            new_filename = f"data/sales_updated_{timestamp}.csv"
-            self.data_loader.data.to_csv(new_filename, index=False)
-            print(f"\nModifications sauvegardées dans : {new_filename}")
+            default_filename = f"analysis_{timestamp}.txt"
+
+            filename = filedialog.asksaveasfilename(
+                initialfile=default_filename,
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+            )
+
+            if filename:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    # Résumé des ventes
+                    sales_summary = self.data_processor.get_sales_summary()
+                    f.write("=== Résumé des Ventes ===\n\n")
+                    f.write(sales_summary.to_string())
+                    f.write("\n\n")
+
+                    # Meilleur produit
+                    best_seller = self.data_processor.get_best_selling_product()
+                    f.write("=== Meilleur Produit ===\n\n")
+                    for key, value in best_seller.items():
+                        f.write(f"{key}: {value}\n")
+                    f.write("\n")
+
+                    # Tendances
+                    trends = self.data_processor.get_sales_trends()
+                    f.write("=== Tendances Mensuelles ===\n\n")
+                    f.write(trends['monthly'].to_string())
+
+                messagebox.showinfo("Succès", "Analyse exportée avec succès")
+
         except Exception as e:
-            print(f"\nErreur lors de la sauvegarde: {str(e)}")
+            messagebox.showerror("Erreur", f"Erreur lors de l'export: {str(e)}")
 
-    def _check_data_loaded(self) -> bool:
-        """
-        @Description Vérifie si les données sont chargées
+    def _show_documentation(self):
+        url = "https://github.com/SkyZonDev/ESMEMarket/blob/main/README.md"  # Remplacez par l'URL souhaitée
+        webbrowser.open(url)
 
-        @Return: bool => True si les données sont chargées, False sinon
-        """
-        if self.data_loader.data is None:
-            print("\nErreur: Aucun fichier n'a été chargé! Veuillez d'abord charger un fichier.")
-            return False
-        return True
+    def _show_about(self):
+        pass
 
-    def run(self) -> None:
+    def _show_credit(self):
+        pass
+
+    def run(self):
         """
-        @Description Lance l'interface CLI
+        @Description: Lance l'application
         """
-        while True:
-            self.display_menu()
-            choice = input("\nChoisissez une option (0-9) : ")
-            
-            if choice == "E":
-                print("\nAu revoir!")
-                break
-            elif choice == "1":
-                self.load_data()
-            elif choice == "2":
-                self.display_sales_by_date()
-            elif choice == "3":
-                self.display_sales_by_product()
-            elif choice == "4":
-                self.search_by_threshold()
-            elif choice == "5":
-                self.find_best_selling_product()
-            elif choice == "6":
-                self.calculate_revenue()
-            elif choice == "7":
-                self.modify_entry()
-            elif choice == "8":
-                self.add_new_sale()
-            elif choice == "9":
-                self.analyze_sales_trends()
-            elif choice == "0":
-                self.save_modifications()
-            else:
-                print("\nOption invalide! Veuillez choisir une option entre 0 et 9.")
+        self.window.mainloop()
