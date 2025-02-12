@@ -25,10 +25,9 @@ class GUI:
     @Description: Interface graphique moderne pour l'application ESMEMarket
     """
     def __init__(self):
-        icon_path = "assets/icon.ico"
         self.window = tk.Tk()
         self.window.title("ESMEMarket - Tableau de Bord")
-        self.window.iconbitmap(icon_path)
+        self.window.iconbitmap("assets/icon.ico")
         self.window.geometry("1920x1080")
         self.window.configure(bg='#f0f0f0')
 

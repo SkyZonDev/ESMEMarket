@@ -31,8 +31,7 @@ class DataProcessor:
         sales_summary.columns = ["total_quantity", "number_of_orders", "average_price"]
 
         ## Calculer le revenu total
-        sales_summary["total_revenue"] = (sales_summary["total_quantity"] *
-                                        sales_summary["average_price"]).round(2)
+        sales_summary["total_revenue"] = (sales_summary["total_quantity"] * sales_summary["average_price"]).round(2)
 
         ## Trier par quantité totale vendue
         sales_summary = sales_summary.sort_values("total_quantity", ascending=False)
