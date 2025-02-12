@@ -1,71 +1,143 @@
-# ESMEMarket - Système de Gestion des Ventes
+# ESMEMarket
 
-## Description
-ESMEMarket est une application Python conçue pour gérer et analyser les données commerciales d'une PME. Le système permet de charger, analyser et visualiser les données de ventes à partir de fichiers CSV.
+ESMEMarket est une application Python conçue pour l'analyse et la gestion des données de vente. Elle offre à la fois une interface en ligne de commande (CLI) et une interface graphique (GUI) pour une expérience utilisateur flexible.
 
-## Structure du Projet
+## 🌟 Fonctionnalités
+
+- Chargement et validation de fichiers CSV de données de vente
+- Analyse détaillée des ventes avec calcul de statistiques
+- Visualisation des tendances de vente
+- Filtrage des données par date, produit, et autres critères
+- Modification et ajout de nouvelles entrées de vente
+- Export des analyses au format texte
+- Interface graphique moderne avec graphiques interactifs
+
+## 📁 Structure du Projet
+
 ```
-app_1/
+ESMEMarket/
 ├── data/                  # Dossier contenant les fichiers CSV
 ├── core/                  # Modules principaux
-│   ├── data_loader.py    # Gestion du chargement des données
-│   └── data_processor.py # Traitement des données
+│   ├── data_loader.py     # Gestion du chargement des données
+│   └── data_processor.py  # Traitement des données
 ├── cli/                   # Interface utilisateur
-│   └── interface.py      # Interface en ligne de commande
-└── main.py               # Point d'entrée
+│   ├── console.py         # Interface en ligne de commande
+│   └── interface.py       # Interface graphique
+└── main.py                # Point d'entrée
 ```
 
-## Fonctionnalités
-1. **Gestion des Données**
-   - Chargement de fichiers CSV
-   - Validation et nettoyage des données
-   - Gestion des lignes vides et valeurs manquantes
+## 🔧 Installation
 
-2. **Analyse des Ventes**
-   - Affichage des ventes par date
-   - Affichage des ventes par produit
-   - Recherche avec filtres (quantité/prix)
-   - Identification du produit le plus vendu
-   - Calcul du chiffre d'affaires
+1. Clonez le dépôt :
+```bash
+git clone https://github.com/votre-username/ESMEMarket.git
+cd ESMEMarket
+```
 
-3. **Analyse des Tendances**
-   - Tendances mensuelles
-   - Tendances horaires
-   - Meilleures ventes par mois et par produit
+2. Installez les dépendances requises :
+```bash
+pip install -r requirements.txt
+```
 
-4. **Modification des Données**
-   - Modification d'entrées existantes
-   - Ajout de nouvelles ventes
-   - Sauvegarde des modifications
+## 📊 Format des Données
 
-5. **Export des Analyses**
-   - Génération de rapports détaillés
-   - Export au format texte avec métadonnées
-   - Ouverture automatique dans le bloc-notes
+L'application attend des fichiers CSV avec les colonnes suivantes :
+- `Order ID` : Identifiant unique de la commande
+- `Product` : Nom du produit
+- `Quantity Ordered` : Quantité commandée
+- `Price Each` : Prix unitaire
+- `Order Date` : Date de la commande
+- `Purchase Address` : Adresse d'achat
 
-## Format des Données
-Le système attend des fichiers CSV avec les colonnes suivantes :
-- Order ID : Identifiant unique de la commande
-- Product : Nom du produit
-- Quantity Ordered : Quantité commandée
-- Price Each : Prix unitaire
-- Order Date : Date de la commande
-- Purchase Address : Adresse d'achat
+## 🚀 Utilisation
 
-## Utilisation
-1. Placez vos fichiers CSV dans le dossier `data/`
-2. Exécutez l'application :
-   ```bash
-   python main.py
-   ```
-3. Utilisez le menu interactif pour accéder aux différentes fonctionnalités
+### Interface en Ligne de Commande (CLI)
 
-## Prérequis
-- Python 3.8+
-- pandas
-- numpy
+Lancez l'application en mode console :
+```bash
+python main.py --cli
+```
 
-## Notes Importantes
-- Les fichiers CSV peuvent contenir des lignes vides qui seront automatiquement gérées
-- L'analyse des tendances génère un fichier texte avec horodatage
-- Les modifications sont sauvegardées dans un nouveau fichier pour préserver les données originales
+Fonctionnalités disponibles :
+1. Charger un fichier de données
+2. Afficher les ventes pour une date
+3. Afficher les ventes pour un produit
+4. Rechercher par seuils (quantité/prix)
+5. Trouver le produit le plus vendu
+6. Calculer le chiffre d'affaires
+7. Modifier une entrée
+8. Ajouter une nouvelle vente
+9. Analyser les tendances de ventes
+0. Sauvegarder les modifications
+
+### Interface Graphique (GUI)
+
+Lancez l'application en mode graphique :
+```bash
+python main.py --gui
+```
+
+L'interface graphique offre :
+- Un tableau de bord interactif
+- Des graphiques de visualisation
+- Des filtres dynamiques
+- Export des analyses
+- Gestion intuitive des données
+
+## 📝 Documentation du Code
+
+### Core
+
+#### DataLoader (core/data_loader.py)
+Gère le chargement et la validation des données CSV :
+- Vérification du format des fichiers
+- Gestion des valeurs manquantes
+- Conversion des types de données
+- Validation des colonnes requises
+
+#### DataProcessor (core/data_processor.py)
+Traite et analyse les données de vente :
+- Calcul des statistiques de vente
+- Analyse des tendances
+- Filtrage des données
+- Modification des entrées
+
+### CLI
+
+#### ConsoleCLI (cli/console.py)
+Interface en ligne de commande avec :
+- Menu interactif
+- Gestion des commandes utilisateur
+- Affichage formaté des résultats
+
+#### InterfaceCLI (cli/interface.py)
+Interface graphique moderne avec :
+- Design responsive
+- Graphiques interactifs
+- Filtres dynamiques
+- Export des analyses
+
+## 🤝 Contribution
+
+Les contributions sont les bienvenues ! Pour contribuer :
+
+1. Forkez le projet
+2. Créez une branche pour votre fonctionnalité
+3. Committez vos changements
+4. Poussez vers la branche
+5. Ouvrez une Pull Request
+
+## 📄 Licence
+
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+
+## ✨ Remerciements
+
+- Merci à tous les contributeurs qui ont participé à ce projet
+- Bibliothèques utilisées : pandas, matplotlib, tkinter
+
+## 📞 Support
+
+Pour toute question ou problème :
+- Ouvrez une issue sur GitHub
+- Contactez l'équipe de développement

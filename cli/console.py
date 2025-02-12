@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 import pandas as pd
 
-class ConsoleCLI:
+class CLI:
     """
     @Description Interface en ligne de commande pour ESMEMarket
     """

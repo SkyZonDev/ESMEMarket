@@ -20,7 +20,7 @@ class ModernFrame(ttk.Frame):
         style.configure('Modern.TFrame', background='#f0f0f0')
         self['style'] = 'Modern.TFrame'
 
-class InterfaceCLI:
+class GUI:
     """
     @Description: Interface graphique moderne pour l'application ESMEMarket
     """
