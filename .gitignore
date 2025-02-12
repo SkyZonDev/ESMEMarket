@@ -175,3 +175,6 @@ cython_debug/
 
 # Analystic Result
 analysis_results_*.txt
+
+# Data File
+*.csv

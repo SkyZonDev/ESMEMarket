@@ -251,7 +251,7 @@ class InterfaceCLI:
             self.tree.column(column, width=100)
 
         # Ajouter les données
-        for idx, row in df.head(1000).iterrows():  # Limiter à 1000 lignes pour la performance
+        for _, row in df.head(1000).iterrows():  # Limiter à 1000 lignes pour la performance
             self.tree.insert("", "end", values=list(row))
 
     def _update_analysis(self):
