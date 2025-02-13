@@ -17,6 +17,12 @@ class CLI:
         self.data_loader = DataLoader()
         self.data_processor = None
         self.current_file = None
+        # Ouvrir et lire le contenu de figlet.txt
+        with open('figlet.txt', 'r') as file:
+            figlet_content = file.read()
+
+        print(figlet_content)
+
 
     def display_menu(self) -> None:
         """
