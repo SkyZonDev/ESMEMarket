@@ -112,28 +112,12 @@ Interface en ligne de commande avec :
 
 #### InterfaceCLI (cli/interface.py)
 Interface graphique moderne avec :
-- Design responsive
 - Graphiques interactifs
-- Filtres dynamiques
 - Export des analyses
-
-## 🤝 Contribution
-
-Les contributions sont les bienvenues ! Pour contribuer :
-
-1. Forkez le projet
-2. Créez une branche pour votre fonctionnalité
-3. Committez vos changements
-4. Poussez vers la branche
-5. Ouvrez une Pull Request
-
-## 📄 Licence
-
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
 ## ✨ Remerciements
 
-- Merci à tous les contributeurs qui ont participé à ce projet
+- Merci à tous les contributeurs qui ont participé à ce projet (Le Patch, MathieuKhanez, Alexios3808, Goatliate)
 - Bibliothèques utilisées : pandas, matplotlib, tkinter
 
 ## 📞 Support
@@ -141,3 +125,7 @@ Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 Pour toute question ou problème :
 - Ouvrez une issue sur GitHub
 - Contactez l'équipe de développement
+
+---
+
+Ce projet est dans le cadre de notre cursus d'apprentissage en école d'ingénieur (SUP ESME Lyon)
